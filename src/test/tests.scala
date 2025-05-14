@@ -1,0 +1,88 @@
+// Principled Metaprogramming in Scala 3
+
+package metaprogramming
+
+import escapade.*
+import fulminate.*
+import gossamer.*
+import hellenism.*
+import larceny.*
+import mandible.*
+import probably.*
+import rudiments.*
+import turbulence.*
+
+import temporaryDirectories.environment
+import classloaders.threadContext
+import stdioSources.virtualMachine.ansi
+
+object Tests extends Suite(m"Metaprogramming tests"):
+  def run(): Unit =
+    suite(m"Part 1: Inlining tests"):
+      suite(m"date tests"):
+        import dates.*
+
+        test(m"Valid date is accepted"):
+          Date(2025, 11, 8)
+        . assert()
+
+        test(m"Negative days are forbidden"):
+          demilitarize:
+            Date(2002, 12, -29)
+          . map(_.message)
+        . assert(_ == List(t"day must not be less than 1"))
+
+
+        test(m"Months over 12 are forbidden"):
+          demilitarize(Date(2023, 13, 1))
+          . map(_.message)
+        . assert(_ == List(t"month must not be greater than 12"))
+
+
+        test(m"Months less than 1 are forbidden"):
+          demilitarize(Date(2019, 0, 12))
+          . map(_.message)
+        . assert(_ == List(t"month must not be less than 1"))
+
+        test(m"1900 is not a leap year"):
+          demilitarize(Date(1900, 2, 29))
+          . map(_.message)
+        . assert(_ == List(t"day must not be greater than 28"))
+
+        test(m"2000 is a leap year"):
+          Date(2000, 2, 29)
+        . assert()
+
+      suite(m"properties tests"):
+        import properties.*
+
+        test(m"We can get the OS name"):
+          os.name()
+        . assert(_ == "Mac OS X")
+
+        test(m"We can get the Java version as an Int"):
+          demilitarize:
+            val prop: Int = java.specification.version()
+        . assert(_.isEmpty)
+
+        test(m"We can get the path separator as a Char"):
+          demilitarize:
+            val prop: Char = path.separator()
+        . assert(_.isEmpty)
+
+      suite(m"safesubs tests"):
+        import safesubs.*
+
+        test(m"Int and chars can be substituted"):
+          val i: Int = 42
+          val c: Char = 'x'
+          p"Testing $i $c"
+        . assert(_ == "Testing 42 x")
+
+        test(m"String cannot be substituted"):
+          val i: Int = 42
+          val s: String = "x"
+
+          demilitarize:
+            p"Testing $i $s"
+        . assert(_.nonEmpty)
