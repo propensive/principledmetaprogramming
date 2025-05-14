@@ -86,3 +86,25 @@ object Tests extends Suite(m"Metaprogramming tests"):
           demilitarize:
             p"Testing $i $s"
         . assert(_.nonEmpty)
+
+      suite(m"evens tests"):
+        import evens.*
+
+        test(m"check that we can create an even number"):
+          val x: Even = Even(10)
+        . assert()
+
+        test(m"check that an Even is not typed as an Int"):
+          demilitarize:
+            val x: Int = Even(10)
+        . assert(_.nonEmpty)
+
+        test(m"check that an even number is a valid Even"):
+          demilitarize:
+            val x: Even = 42
+        . assert(_.isEmpty)
+
+        test(m"check that an odd number is not a valid Even"):
+          demilitarize:
+            val x: Even = 41
+        . assert(_ == List(""))
