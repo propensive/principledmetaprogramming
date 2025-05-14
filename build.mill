@@ -1,0 +1,57 @@
+package build
+
+import mill._
+import scalalib._
+import publish._
+import os.Path
+
+object settings {
+  val scalaVersion = "3.6.2"
+  val scalaOptions = Seq(
+    "-experimental",
+    "-new-syntax",
+    "-feature",
+    //"-explain",
+    "-deprecation",
+    "-Wunused:imports",
+    "-Wimplausible-patterns",
+    "-Wsafe-init",
+    "-Xmax-inlines", "100",
+    "-Yrequire-targetName",
+    "-Ycc-new",
+    "-Yno-flexible-types",
+    "-Ycheck-all-patmat",
+    "-language:experimental.modularity",
+    "-language:experimental.genericNumberLiterals",
+    "-language:experimental.into",
+    "-language:experimental.erasedDefinitions",
+    "-language:experimental.saferExceptions",
+    "-language:experimental.namedTypeArguments",
+    "-language:implicitConversions"
+  )
+}
+
+trait ProjectModule extends Module {
+  def millSourcePath = super.millSourcePath / "src"
+}
+
+trait Submodule extends ScalaModule {
+  override def scalaVersion = settings.scalaVersion
+  override def scalacOptions = settings.scalaOptions
+  def consoleScalacOptions = scalacOptions()
+  def resources = Task(Seq(PathRef(millSourcePath / ".." / ".." / ".." / "res")))
+}
+
+object metaprogramming extends ProjectModule {
+  object examples extends Submodule {
+    def sources = Task.Sources(Seq(PathRef(millSourcePath / ".." / ".." / ".." / "src" / "examples")))
+    def moduleDeps = Seq()
+    def ivyDeps = Agg(ivy"dev.soundness:soundness-all:0.27.0")
+  }
+
+  object test extends Submodule {
+    def scalacPluginIvyDeps = T { Seq(ivy"dev.soundness:larceny-plugin:0.27.0") }
+    def sources = Task.Sources(Seq(PathRef(millSourcePath / ".." / ".." / ".." / "src" / "test")))
+    def moduleDeps = Seq(examples)
+  }
+}
