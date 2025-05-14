@@ -108,3 +108,16 @@ object Tests extends Suite(m"Metaprogramming tests"):
           demilitarize:
             val x: Even = 41
         . assert(_ == List(""))
+
+      suite(m"timezone tests"):
+        import timezone.*
+
+        test(m"Timezone is valid"):
+          tz"Europe/London"
+        . assert(_ == Timezone("Europe/London"))
+
+
+        test(m"Invalid timezone is error"):
+          demilitarize:
+            tz"Europe/Milan"
+        . assert(_ != Nil)
