@@ -121,3 +121,25 @@ object Tests extends Suite(m"Metaprogramming tests"):
           demilitarize:
             tz"Europe/Milan"
         . assert(_ != Nil)
+
+      suite(m"weave tests"):
+        import weaving.*
+
+        test(m"two woven Lists produces a List"):
+          demilitarize:
+            val x = List(1, 2, 3).alternate(List(4, 5, 6))
+            x: List[Int]
+          .map(_.message)
+        . assert(_ == Nil)
+
+      suite(m"timezone tests"):
+        import multiply.*
+
+        test(m"check that we can add two singleton types"):
+          summon[Add[9, 12] =:= 21]
+        . assert()
+
+        test(m"check that addition doesn't produce the wrong answer"):
+          demilitarize:
+            summon[Add[9, 12] =:= 22]
+        . assert(_.nonEmpty)

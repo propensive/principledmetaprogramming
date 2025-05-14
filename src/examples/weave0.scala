@@ -1,6 +1,6 @@
 package metaprogramming
 
-object weave:
+object weaving:
   extension [element](left: Iterable[element])
-    def weave(right: Iterable[element]): Iterable[element] =
+    def alternate(right: Iterable[element]): Iterable[element] =
       left.zip(right).flatMap(Iterable(_, _))
