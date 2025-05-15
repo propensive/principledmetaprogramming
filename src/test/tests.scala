@@ -18,6 +18,9 @@ import stdioSources.virtualMachine.ansi
 
 object Tests extends Suite(m"Metaprogramming tests"):
   def run(): Unit =
+
+    Out.println(disassemble('{hello.hello()}).teletype)
+
     suite(m"Part 1: Inlining tests"):
       suite(m"date tests"):
         import dates.*
@@ -123,7 +126,7 @@ object Tests extends Suite(m"Metaprogramming tests"):
         . assert(_ != Nil)
 
       suite(m"weave tests"):
-        import weaving.*
+        import alternate.*
 
         test(m"two woven Lists produces a List"):
           demilitarize:

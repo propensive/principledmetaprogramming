@@ -46,7 +46,7 @@ object metaprogramming extends ProjectModule {
   object examples extends Submodule {
     def sources = Task.Sources(Seq(PathRef(millSourcePath / ".." / ".." / ".." / "src" / "examples")))
     def moduleDeps = Seq()
-    def ivyDeps = Agg(ivy"dev.soundness:soundness-all:0.27.0")
+    def ivyDeps = Agg(ivy"dev.soundness:soundness-all:0.29.0")
   }
 
   object test extends Submodule {
