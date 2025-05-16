@@ -1,0 +1,544 @@
+#!/usr/bin/env amok
+version  1
+title    Principled Metaprogramming with Scala 3
+format   presentation
+##
+
+## Principled Metaprogramming
+### in Scala 3
+
+---
+
+## Part I
+# Inlining
+
+---
+
+Why macros?
+
+- more expressive syntax
+- smarter type inference
+- tighter constraints
+- optimized performance
+
+---
+
+## Ideas for macros
+
+---
+
+## Your first `inline` method
+
+```amok
+version  def hello(): Unit = println("Hello world")
+version  inline def hello(): Unit = println("Hello world")
+```
+---
+
+## Examine bytecode with _Mandible_
+
+_Mandible_ is a tool for analysing bytecode. Put the code you want to disassemble inside `'{}`
+and apply `disassemble` to it.
+
+```amok
+version  hello()
+version  '{ hello() }
+version  disassemble('{ hello() })
+version  disassemble('{ hello() }).teletype
+version  Out.println(disassemble('{ hello() }).teletype)
+```
+---
+
+## Exercise
+
+Compare the output of the `inline` and non-`inline` versions of `hello()`.
+
+---
+
+## Experimentation
+
+- Make `"Hello world"` a `val` in the method
+- Try moving the `val` outside the method
+- Try making it an `inline val`
+- Change it to a `final val`
+- Change it to a `def`
+- Make it `inline`
+
+---
+
+## Constant folding
+
+Change `"Hello world"` to `"Hello"+" "+"world"`.
+
+What happens, if anything?
+
+---
+
+Now write,
+```amok
+version  val space = " "
+```
+and use it for the space literal in `hello()`.
+
+---
+
+## Singleton types
+
+Try specifying the type of `message` as the singleton type, `"Hello world"`.
+
+- try casting (with `asInstanceOf`) a different string to `"Hello world"`
+
+---
+
+## Static Analysis
+
+Know what it's possible to know compiletime.
+
+Understand what can't be known until runtime.
+
+---
+
+## What does the compiler know?
+
+- if a reference has a singleton type, its value is known
+- if a reference is stable, accessing or dereferencing it is pure
+- arithmetic operations on constants are evaluated at compiletime
+
+---
+
+## Dead Code Analysis
+
+- if the compiler knows a predicate will always be `true` or always `false`, it will delete the other branch
+- if it knows that a pattern will always match, it will delete the other branches
+- this can happen (without guarantees) independently of macros
+- `inline if` and `inline ... match` guarantee it (or fail to compile)
+
+---
+
+### `date` example
+## Date checking
+
+Write a method that takes a year, month and day (all `Int`s) and fails at compile time if they don't
+represent a valid date in the Gregorian calendar.
+
+---
+
+## Gregorian Calendar Rules
+
+- Day must be 1 or greater
+- Month must be between 1 and 12
+- April, June, September and November always have 30 days
+- January, March, May, July, August, October and December have 31 days
+- February has 28 days
+  - unless the year is divisible by 4, then it has 29 days
+    - unless the year is divisble by 100, then it has 28 days
+      - unless the year is divisible by 400, and then it has 29 days
+
+---
+
+## `constValue`
+
+---
+
+Now change the `date`'s parameters to type parameters.
+
+---
+
+## `scala.compiletime.ops`
+
+---
+
+Try enforcing some of the constraints on `date`
+
+---
+
+### `properties` example
+## Dynamic Property Access
+
+Read and understand the code for accessing system properties.
+
+This example uses:
+- typeclasses
+- `infix` types and type members
+- singleton types
+- `given` definitions
+- the `Dynamic` trait
+
+---
+
+## `Dynamic`
+
+If we invoke _`methodName`_ on a value, `x`, and the type of `x` does not define a method called
+_`methodName`_, and there is no extension method in scope providing _`methodName`_, but `x` is a
+subtype of the `Dynamic` trait, then the compiler will translate the call.
+
+```amok
+version
+    x.methodName
+    x.methodName()
+version
+    x.selectDynamic("methodName")
+    x.applyDynamic("methodName")()
+```
+
+We can extend `Dynamic` and define the methods `selectDynamic` and `applyDynamic` with signatures
+that match these invocations.
+
+---
+
+## Dynamic Property Access
+
+Adapt the code to avoid constructing string values from parts at runtime. Choose a typeclass based
+on the string singleton type, and apply it to the result to get a dependently-typed value.
+
+You will need to use:
+- `inline` methods
+- `scala.compiletime.ops.string.*`
+- type parameters
+
+---
+
+## Dynamic Property Access
+
+Now, look at the bytecode for `Properties.java.specification.version`.
+
+---
+
+### `timezone` example
+## Enforcing Valid Timezones
+
+Create a `tz` interpolator that only allows valid timezone values, like `tz"Europe/Lisbon"`.
+
+- Can we do this at compiletime with just `inline`?
+
+---
+
+### `evens` example
+## Custom number literals
+
+Create an opaque type that represents even numbers. Adapt the constructor to check validity at
+compiletime. Implement a `FromDigits` typeclass instance to construct a value directly from
+
+---
+
+## Static Branching
+
+- `inline if`
+- `inline ... match`
+- `summonInline`
+- `summonFrom`
+
+---
+
+## Erased definitions
+
+- Erased values produce no fields in classfiles
+- Erased parameters do not appear in bytecode method signatures
+- Erased traits have no classfiles
+
+---
+
+
+### String Interpolation
+
+Calls to an identifier-prefixed string will get translated before typechecking.
+
+```amok
+version
+    xyz"hello ${name}!"
+version
+    StringContext("hello ", "!").xyz(name)
+version
+    extension (ctx: StringContext)
+      def xyz(subs*) = ???
+
+    StringContext("hello ", "!").xyz(name)
+```
+
+---
+
+
+---
+
+## `summonInline`
+
+With `summonInline` we can search for a contextual instance of a type at the expansion site.
+
+---
+
+## `transparent`
+
+Transparent inline methods return the precise type of the inlined expression. This can be more
+precise than its declared type.
+
+---
+
+### `alternate` example
+## Cleaner polymorphism
+
+Write a method, `alternate`, that takes elements alternately from two equal-length sequences. It
+should return a sequence of the same type as its inputs (or their least upper-bound).
+
+---
+
+## `summonFrom`
+
+With `summonFrom`, we can provide different code branches depending on the presence or absence of
+certain contextual values.
+
+---
+
+### `total` example
+## Custom return types
+
+Write a method for calculating the total of a set of sequence of `element`s using the `Addable`
+typeclass. Return an `Option[element]`, where an empty sequence results in `None`.
+
+---
+
+### Addable
+
+```amok
+version
+    trait Addable:
+      type Self
+      type Operand
+      type Result
+      def add(left: Self, right: Operand): Result
+version
+    trait Addable:
+      type Self
+      type Operand
+      type Result
+      def add(left: Self, right: Operand): Result
+
+    given Int is Addable by Int into Int = _ + _
+```
+---
+
+### `total` example
+
+Now, modify the implementation to use the `Zeroic` typeclass to return an appropriate zero value
+if the sequence is empty. The method should return an `element` or fail to compile.
+
+---
+
+### `total` example
+
+Finally, modify the implementation to return an `element` if there is a `Zeroic` instance, or
+return an `Option[element]` if there isn't.
+
+---
+
+## Match types
+
+---
+
+Match types provide limited form of compiletime type calculation, by means of pattern matching on
+types.
+
+```amok
+version
+    def add(left: Int, right: Int): Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type add(left: Int, right: Int): Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type Add(left: Int, right: Int): Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type Add[left: Int, right: Int]: Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type Add[left <: Int, right <: Int]: Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0 => left
+      case n => add(left + 1, n - 1)
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0 => left
+      case n => Add(left + 1, n - 1)
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0 => left
+      case n => Add[left + 1, n - 1]
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0     => left
+      case n + 1 => Add[left + 1, n]
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0    => left
+      case S(n) => Add[left + 1, n]
+version
+    type Add[left <: Int, right <: Int] <: Int = right match
+      case 0    => left
+      case S[n] => Add[left + 1, n]
+```
+
+---
+
+### `multiply` example
+
+Write a `Mul` match type which multiplies two singleton literal `Int` types. You can refer to `Add`
+in the implementation.
+
+---
+
+### `prefix` example
+
+Adapt `Add` to
+Write a `Mul` match type which multiplies two singleton literal `Int` types. You can refer to `Add`
+in the implementation.
+
+---
+
+## Part II
+# Quotes and Splices
+
+---
+
+## Transformation
+
+- add `using Quotes`
+- add `: Type` to each type parameter
+- wrap each parameter type in `Expr[_]`
+- wrap the return type in `Expr[_]`
+
+---
+
+## A trivial first macro
+
+Write a macro to print `"Hello, <name>"` when you call `hello(name)`.
+
+---
+
+```amok
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      implementation(count, list)
+
+    def implementation[e](count: Int, list: List[e]): List[String] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      implementation(count, list)
+
+    def implementation[e](count: Int, list: List[e])(using Quotes): List[String] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      implementation(count, list)
+
+    def implementation[e](count: Expr[Int], list: Expr[List[e]])(using Quotes): List[String] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      implementation(count, list)
+
+    def implementation[e](count: Expr[Int], list: Expr[List[e]])(using Quotes): Expr[List[String]] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      implementation(count, list)
+
+    def implementation[e: Type](count: Expr[Int], list: Expr[List[e]])(using Quotes): Expr[List[String]] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      ${implementation(count, list)}
+
+    def implementation[e: Type](count: Expr[Int], list: Expr[List[e]])(using Quotes): Expr[List[String]] =
+      ???
+version
+    def example[e](count: Int, list: List[e]): List[String] =
+      ${implementation('count, 'list)}
+
+    def implementation[e: Type](count: Expr[Int], list: Expr[List[e]])(using Quotes): Expr[List[String]] =
+      ???
+version
+    inline def example[e](count: Int, list: List[e]): List[String] =
+      ${implementation('count, 'list)}
+
+    def implementation[e: Type](count: Expr[Int], list: Expr[List[e]])(using Quotes): Expr[List[String]] =
+      ???
+```
+---
+
+## Theory of Quotes and Splices
+
+---
+
+## Pattern matching expressions
+
+---
+
+## Names, Branching and Scopes
+
+- Pattern matching on an `Expr` introduces new _terms_ and _types_ into the scope on the right-hand
+  side of the case clause.
+- The new terms and types all exist _because_ the `case` matched
+- And we only find ourselves in that scope if the `case` pattern matched
+
+---
+
+## `Expr.summon`
+
+---
+
+## Transparent inline macros
+
+---
+
+## Part III
+# TASTy Trees
+
+---
+
+## What are TASTy Trees?
+
+---
+
+## Reference material
+
+- `scala/scala3:compiler/src/scala/quoted/runtime/impl/QuotesImpl.scala`
+
+---
+
+## `Expr`s vs `Term`s
+
+We can convert between `Expr`s and `Term`s:
+
+- `expr.asTerm`
+- `term.asExpr`
+- `term.asExprOf[T]`
+
+---
+
+## Converting Types
+
+- `summon[Type[T]]`
+  - `Type.of[T]`
+- `summon[TypeRepr[T]]`
+  - `TypeRepr.of[T]`
+
+
+---
+
+## Types vs Symbols
+
+---
+
+### `enumeration` Example
+
+---
+
+##
